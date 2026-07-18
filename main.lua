@@ -5,7 +5,8 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
-local Library = {
+local SigmaLibrary = {
+    Name = "SigmaLibrary",
     Version = "1.0.0"
 }
 
@@ -20,7 +21,7 @@ local function Create(className, properties)
 end
 
 local function Tween(object, properties, duration)
-    local tween = TweenService:Create(
+    local animation = TweenService:Create(
         object,
         TweenInfo.new(
             duration or 0.18,
@@ -30,8 +31,9 @@ local function Tween(object, properties, duration)
         properties
     )
 
-    tween:Play()
-    return tween
+    animation:Play()
+
+    return animation
 end
 
 local function RunCallback(callback, ...)
@@ -47,12 +49,12 @@ local function RunCallback(callback, ...)
         end)
 
         if not success then
-            warn("[Universal UI] " .. tostring(result))
+            warn("[SigmaLibrary] " .. tostring(result))
         end
     end)
 end
 
-local function GetParent()
+local function GetUIParent()
     if typeof(gethui) == "function" then
         local success, result = pcall(gethui)
 
@@ -62,10 +64,10 @@ local function GetParent()
     end
 
     local success = pcall(function()
-        local test = Instance.new("Folder")
-        test.Name = "UniversalUITest"
-        test.Parent = CoreGui
-        test:Destroy()
+        local folder = Instance.new("Folder")
+        folder.Name = "SigmaLibraryTest"
+        folder.Parent = CoreGui
+        folder:Destroy()
     end)
 
     if success then
@@ -77,6 +79,7 @@ end
 
 local function Round(value, increment)
     increment = increment or 1
+
     return math.floor((value / increment) + 0.5) * increment
 end
 
@@ -86,6 +89,7 @@ local function FormatNumber(value, increment)
     end
 
     local text = string.format("%.3f", value)
+
     text = text:gsub("0+$", "")
     text = text:gsub("%.$", "")
 
@@ -138,22 +142,21 @@ local function MakeDraggable(object, handle)
     end)
 end
 
-function Library:CreateWindow(configuration)
+function SigmaLibrary:CreateWindow(configuration)
     configuration = configuration or {}
 
-    local title = configuration.Title or "Universal UI"
+    local title = configuration.Title or "SigmaLibrary"
     local subtitle = configuration.Subtitle or "Universal UI Library"
-    local accent = configuration.Accent or Color3.fromRGB(125, 91, 255)
+    local accent = configuration.Accent or Color3.fromRGB(130, 90, 255)
     local size = configuration.Size or Vector2.new(650, 430)
     local toggleKey = configuration.ToggleKey or Enum.KeyCode.RightShift
+    local screenName = configuration.Name or "SigmaLibrary"
 
     if typeof(size) ~= "Vector2" then
         size = Vector2.new(650, 430)
     end
 
-    local parent = GetParent()
-    local screenName = configuration.Name or "UniversalUI"
-
+    local parent = GetUIParent()
     local previous = parent:FindFirstChild(screenName)
 
     if previous then
@@ -271,6 +274,7 @@ function Library:CreateWindow(configuration)
     })
 
     local Body = Create("Frame", {
+        Name = "Body",
         Parent = WindowFrame,
         Position = UDim2.fromOffset(0, 52),
         Size = UDim2.new(1, 0, 1, -52),
@@ -278,6 +282,7 @@ function Library:CreateWindow(configuration)
     })
 
     local Sidebar = Create("Frame", {
+        Name = "Sidebar",
         Parent = Body,
         Size = UDim2.new(0, 150, 1, 0),
         BackgroundColor3 = Color3.fromRGB(20, 20, 25),
@@ -311,6 +316,7 @@ function Library:CreateWindow(configuration)
     })
 
     local PageHolder = Create("Frame", {
+        Name = "Pages",
         Parent = Body,
         Position = UDim2.fromOffset(150, 0),
         Size = UDim2.new(1, -150, 1, 0),
@@ -318,6 +324,7 @@ function Library:CreateWindow(configuration)
     })
 
     local NotificationHolder = Create("Frame", {
+        Name = "Notifications",
         Parent = ScreenGui,
         AnchorPoint = Vector2.new(1, 1),
         Position = UDim2.new(1, -16, 1, -16),
@@ -359,14 +366,14 @@ function Library:CreateWindow(configuration)
             CornerRadius = UDim.new(0, 10)
         })
 
-        local stroke = Create("UIStroke", {
+        local Stroke = Create("UIStroke", {
             Parent = Notification,
             Color = accent,
             Transparency = 1,
             Thickness = 1
         })
 
-        local label = Create("TextLabel", {
+        local Label = Create("TextLabel", {
             Parent = Notification,
             Position = UDim2.fromOffset(14, 0),
             Size = UDim2.new(1, -28, 1, 0),
@@ -384,11 +391,11 @@ function Library:CreateWindow(configuration)
             BackgroundTransparency = 0
         })
 
-        Tween(stroke, {
+        Tween(Stroke, {
             Transparency = 0.3
         })
 
-        Tween(label, {
+        Tween(Label, {
             TextTransparency = 0
         })
 
@@ -401,11 +408,11 @@ function Library:CreateWindow(configuration)
                 BackgroundTransparency = 1
             })
 
-            Tween(stroke, {
+            Tween(Stroke, {
                 Transparency = 1
             })
 
-            Tween(label, {
+            Tween(Label, {
                 TextTransparency = 1
             })
 
@@ -572,7 +579,7 @@ function Library:CreateWindow(configuration)
         end)
 
         function Tab:CreateSection(text)
-            return Create("TextLabel", {
+            local Section = Create("TextLabel", {
                 Parent = Page,
                 Size = UDim2.new(1, 0, 0, 27),
                 BackgroundTransparency = 1,
@@ -583,6 +590,18 @@ function Library:CreateWindow(configuration)
                 TextXAlignment = Enum.TextXAlignment.Left,
                 TextYAlignment = Enum.TextYAlignment.Bottom
             })
+
+            local Object = {}
+
+            function Object:Set(newText)
+                Section.Text = string.upper(tostring(newText))
+            end
+
+            function Object:Destroy()
+                Section:Destroy()
+            end
+
+            return Object
         end
 
         function Tab:CreateLabel(text)
@@ -623,16 +642,19 @@ function Library:CreateWindow(configuration)
                 Label.Text = tostring(newText)
             end
 
+            function Object:Destroy()
+                Holder:Destroy()
+            end
+
             return Object
         end
 
         function Tab:CreateButton(options)
             options = options or {}
 
-            local name = options.Name or "Button"
+            local buttonName = options.Name or "Button"
             local description = options.Description or ""
             local callback = options.Callback
-
             local height = description ~= "" and 54 or 44
 
             local Button = Create("TextButton", {
@@ -656,18 +678,28 @@ function Library:CreateWindow(configuration)
 
             local NameLabel = Create("TextLabel", {
                 Parent = Button,
-                Position = UDim2.fromOffset(13, description ~= "" and 7 or 0),
-                Size = UDim2.new(1, -58, 0, description ~= "" and 22 or height),
+                Position = UDim2.fromOffset(
+                    13,
+                    description ~= "" and 7 or 0
+                ),
+                Size = UDim2.new(
+                    1,
+                    -58,
+                    0,
+                    description ~= "" and 22 or height
+                ),
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
-                Text = tostring(name),
+                Text = tostring(buttonName),
                 TextColor3 = Color3.fromRGB(235, 235, 242),
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
+            local DescriptionLabel
+
             if description ~= "" then
-                Create("TextLabel", {
+                DescriptionLabel = Create("TextLabel", {
                     Parent = Button,
                     Position = UDim2.fromOffset(13, 27),
                     Size = UDim2.new(1, -58, 0, 18),
@@ -712,6 +744,18 @@ function Library:CreateWindow(configuration)
                 })
             end)
 
+            Button.MouseButton1Down:Connect(function()
+                Tween(Button, {
+                    BackgroundColor3 = Color3.fromRGB(42, 42, 52)
+                }, 0.08)
+            end)
+
+            Button.MouseButton1Up:Connect(function()
+                Tween(Button, {
+                    BackgroundColor3 = Color3.fromRGB(35, 35, 44)
+                }, 0.08)
+            end)
+
             Button.MouseButton1Click:Connect(function()
                 RunCallback(callback)
             end)
@@ -722,12 +766,22 @@ function Library:CreateWindow(configuration)
                 NameLabel.Text = tostring(newName)
             end
 
-            function Object:Fire()
-                RunCallback(callback)
+            function Object:SetDescription(newDescription)
+                if DescriptionLabel then
+                    DescriptionLabel.Text = tostring(newDescription)
+                end
             end
 
             function Object:SetCallback(newCallback)
                 callback = newCallback
+            end
+
+            function Object:Fire()
+                RunCallback(callback)
+            end
+
+            function Object:Destroy()
+                Button:Destroy()
             end
 
             return Object
@@ -736,11 +790,10 @@ function Library:CreateWindow(configuration)
         function Tab:CreateToggle(options)
             options = options or {}
 
-            local name = options.Name or "Toggle"
+            local toggleName = options.Name or "Toggle"
             local description = options.Description or ""
             local callback = options.Callback
             local enabled = options.Default == true
-
             local height = description ~= "" and 58 or 46
 
             local ToggleButton = Create("TextButton", {
@@ -762,20 +815,30 @@ function Library:CreateWindow(configuration)
                 Transparency = 0.4
             })
 
-            Create("TextLabel", {
+            local NameLabel = Create("TextLabel", {
                 Parent = ToggleButton,
-                Position = UDim2.fromOffset(13, description ~= "" and 8 or 0),
-                Size = UDim2.new(1, -78, 0, description ~= "" and 22 or height),
+                Position = UDim2.fromOffset(
+                    13,
+                    description ~= "" and 8 or 0
+                ),
+                Size = UDim2.new(
+                    1,
+                    -78,
+                    0,
+                    description ~= "" and 22 or height
+                ),
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
-                Text = tostring(name),
+                Text = tostring(toggleName),
                 TextColor3 = Color3.fromRGB(235, 235, 242),
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left
             })
 
+            local DescriptionLabel
+
             if description ~= "" then
-                Create("TextLabel", {
+                DescriptionLabel = Create("TextLabel", {
                     Parent = ToggleButton,
                     Position = UDim2.fromOffset(13, 29),
                     Size = UDim2.new(1, -78, 0, 18),
@@ -793,7 +856,9 @@ function Library:CreateWindow(configuration)
                 AnchorPoint = Vector2.new(1, 0.5),
                 Position = UDim2.new(1, -13, 0.5, 0),
                 Size = UDim2.fromOffset(42, 23),
-                BackgroundColor3 = enabled and accent or Color3.fromRGB(55, 55, 66),
+                BackgroundColor3 = enabled
+                    and accent
+                    or Color3.fromRGB(55, 55, 66),
                 BorderSizePixel = 0
             })
 
@@ -817,6 +882,18 @@ function Library:CreateWindow(configuration)
                 Parent = Knob,
                 CornerRadius = UDim.new(1, 0)
             })
+
+            ToggleButton.MouseEnter:Connect(function()
+                Tween(ToggleButton, {
+                    BackgroundColor3 = Color3.fromRGB(34, 34, 42)
+                })
+            end)
+
+            ToggleButton.MouseLeave:Connect(function()
+                Tween(ToggleButton, {
+                    BackgroundColor3 = Color3.fromRGB(27, 27, 34)
+                })
+            end)
 
             local Object = {}
 
@@ -848,8 +925,22 @@ function Library:CreateWindow(configuration)
                 self:Set(not enabled)
             end
 
+            function Object:SetName(newName)
+                NameLabel.Text = tostring(newName)
+            end
+
+            function Object:SetDescription(newDescription)
+                if DescriptionLabel then
+                    DescriptionLabel.Text = tostring(newDescription)
+                end
+            end
+
             function Object:SetCallback(newCallback)
                 callback = newCallback
+            end
+
+            function Object:Destroy()
+                ToggleButton:Destroy()
             end
 
             ToggleButton.MouseButton1Click:Connect(function()
@@ -866,7 +957,7 @@ function Library:CreateWindow(configuration)
         function Tab:CreateSlider(options)
             options = options or {}
 
-            local name = options.Name or "Slider"
+            local sliderName = options.Name or "Slider"
             local minimum = tonumber(options.Min) or 0
             local maximum = tonumber(options.Max) or 100
             local increment = tonumber(options.Increment) or 1
@@ -886,6 +977,9 @@ function Library:CreateWindow(configuration)
                 maximum
             )
 
+            value = Round(value - minimum, increment) + minimum
+            value = math.clamp(value, minimum, maximum)
+
             local SliderFrame = Create("Frame", {
                 Parent = Page,
                 Size = UDim2.new(1, 0, 0, 65),
@@ -904,13 +998,13 @@ function Library:CreateWindow(configuration)
                 Transparency = 0.4
             })
 
-            Create("TextLabel", {
+            local NameLabel = Create("TextLabel", {
                 Parent = SliderFrame,
                 Position = UDim2.fromOffset(13, 7),
                 Size = UDim2.new(1, -88, 0, 23),
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
-                Text = tostring(name),
+                Text = tostring(sliderName),
                 TextColor3 = Color3.fromRGB(235, 235, 242),
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left
@@ -942,7 +1036,8 @@ function Library:CreateWindow(configuration)
                 CornerRadius = UDim.new(1, 0)
             })
 
-            local startingPercentage = (value - minimum) / (maximum - minimum)
+            local startingPercentage = (value - minimum)
+                / (maximum - minimum)
 
             local Fill = Create("Frame", {
                 Parent = Bar,
@@ -987,9 +1082,11 @@ function Library:CreateWindow(configuration)
                 newValue = tonumber(newValue) or minimum
                 newValue = math.clamp(newValue, minimum, maximum)
                 newValue = Round(newValue - minimum, increment) + minimum
+
                 value = math.clamp(newValue, minimum, maximum)
 
-                local percentage = (value - minimum) / (maximum - minimum)
+                local percentage = (value - minimum)
+                    / (maximum - minimum)
 
                 Tween(Fill, {
                     Size = UDim2.fromScale(percentage, 1)
@@ -1010,8 +1107,16 @@ function Library:CreateWindow(configuration)
                 return value
             end
 
+            function Object:SetName(newName)
+                NameLabel.Text = tostring(newName)
+            end
+
             function Object:SetCallback(newCallback)
                 callback = newCallback
+            end
+
+            function Object:Destroy()
+                SliderFrame:Destroy()
             end
 
             local function Update(inputPosition)
@@ -1021,12 +1126,14 @@ function Library:CreateWindow(configuration)
 
                 local percentage = math.clamp(
                     (inputPosition.X - Bar.AbsolutePosition.X)
-                    / Bar.AbsoluteSize.X,
+                        / Bar.AbsoluteSize.X,
                     0,
                     1
                 )
 
-                Object:Set(minimum + ((maximum - minimum) * percentage))
+                Object:Set(
+                    minimum + ((maximum - minimum) * percentage)
+                )
             end
 
             Hitbox.InputBegan:Connect(function(input)
@@ -1036,6 +1143,7 @@ function Library:CreateWindow(configuration)
                 end
 
                 dragging = true
+
                 Update(input.Position)
 
                 Tween(Knob, {
@@ -1077,7 +1185,7 @@ function Library:CreateWindow(configuration)
         function Tab:CreateTextbox(options)
             options = options or {}
 
-            local name = options.Name or "Textbox"
+            local textboxName = options.Name or "Textbox"
             local placeholder = options.Placeholder or "Enter text..."
             local callback = options.Callback
 
@@ -1099,13 +1207,13 @@ function Library:CreateWindow(configuration)
                 Transparency = 0.4
             })
 
-            Create("TextLabel", {
+            local NameLabel = Create("TextLabel", {
                 Parent = Holder,
                 Position = UDim2.fromOffset(13, 5),
                 Size = UDim2.new(1, -26, 0, 24),
                 BackgroundTransparency = 1,
                 Font = Enum.Font.GothamMedium,
-                Text = tostring(name),
+                Text = tostring(textboxName),
                 TextColor3 = Color3.fromRGB(235, 235, 242),
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left
@@ -1158,7 +1266,11 @@ function Library:CreateWindow(configuration)
                     Transparency = 0.45
                 })
 
-                RunCallback(callback, TextBox.Text, enterPressed)
+                RunCallback(
+                    callback,
+                    TextBox.Text,
+                    enterPressed
+                )
             end)
 
             local Object = {}
@@ -1175,8 +1287,16 @@ function Library:CreateWindow(configuration)
                 TextBox.Text = ""
             end
 
+            function Object:SetName(newName)
+                NameLabel.Text = tostring(newName)
+            end
+
             function Object:SetCallback(newCallback)
                 callback = newCallback
+            end
+
+            function Object:Destroy()
+                Holder:Destroy()
             end
 
             return Object
@@ -1191,6 +1311,7 @@ function Library:CreateWindow(configuration)
 
     MinimizeButton.MouseButton1Click:Connect(function()
         Window.Minimized = not Window.Minimized
+
         Body.Visible = not Window.Minimized
         SubtitleLabel.Visible = not Window.Minimized
         MinimizeButton.Text = Window.Minimized and "+" or "—"
@@ -1243,4 +1364,4 @@ function Library:CreateWindow(configuration)
     return Window
 end
 
-return Library
+return SigmaLibrary
