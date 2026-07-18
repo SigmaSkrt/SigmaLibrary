@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local SigmaLibrary = {
     Name = "SigmaLibrary",
-    Version = "1.1.0"
+    Version = "1.2.0"
 }
 
 local function Create(className, properties)
@@ -49,7 +49,7 @@ local function RunCallback(callback, ...)
         end)
 
         if not success then
-            warn("[SigmaLibrary] " .. tostring(result))
+            warn("[SigmaLibrary] Callback error: " .. tostring(result))
         end
     end)
 end
@@ -64,10 +64,11 @@ local function GetUIParent()
     end
 
     local success = pcall(function()
-        local testFolder = Instance.new("Folder")
-        testFolder.Name = "SigmaLibraryTest"
-        testFolder.Parent = CoreGui
-        testFolder:Destroy()
+        local test = Instance.new("Folder")
+
+        test.Name = "SigmaLibraryParentTest"
+        test.Parent = CoreGui
+        test:Destroy()
     end)
 
     if success then
@@ -96,50 +97,45 @@ local function FormatNumber(value, increment)
     return text
 end
 
+local function CleanExecutorValue(value)
+    if typeof(value) == "string" and value ~= "" then
+        return value
+    end
+
+    if typeof(value) == "number" then
+        return tostring(value)
+    end
+
+    return nil
+end
+
 local function GetExecutorInfo()
     local executorName = "Unknown Executor"
     local executorVersion
 
-    if typeof(identifyexecutor) == "function" then
-        local success, name, version = pcall(identifyexecutor)
+    local detectorFunctions = {
+        identifyexecutor,
+        getexecutorname,
+        getexecutor
+    }
 
-        if success then
-            if typeof(name) == "string" and name ~= "" then
-                executorName = name
-            end
+    for _, detector in ipairs(detectorFunctions) do
+        if typeof(detector) == "function" then
+            local success, name, version = pcall(detector)
 
-            if typeof(version) == "string" and version ~= "" then
-                executorVersion = version
-            elseif typeof(version) == "number" then
-                executorVersion = tostring(version)
-            end
-        end
-    elseif typeof(getexecutorname) == "function" then
-        local success, name, version = pcall(getexecutorname)
+            if success then
+                local detectedName = CleanExecutorValue(name)
+                local detectedVersion = CleanExecutorValue(version)
 
-        if success then
-            if typeof(name) == "string" and name ~= "" then
-                executorName = name
-            end
+                if detectedName then
+                    executorName = detectedName
+                end
 
-            if typeof(version) == "string" and version ~= "" then
-                executorVersion = version
-            elseif typeof(version) == "number" then
-                executorVersion = tostring(version)
-            end
-        end
-    elseif typeof(getexecutor) == "function" then
-        local success, name, version = pcall(getexecutor)
+                if detectedVersion then
+                    executorVersion = detectedVersion
+                end
 
-        if success then
-            if typeof(name) == "string" and name ~= "" then
-                executorName = name
-            end
-
-            if typeof(version) == "string" and version ~= "" then
-                executorVersion = version
-            elseif typeof(version) == "number" then
-                executorVersion = tostring(version)
+                break
             end
         end
     end
@@ -155,41 +151,22 @@ local function GetExecutorInfo()
         end
     end
 
-    return executorName, executorVersion, executorDisplay
-end
-
-local function PrintLoadedSuccessfully()
-    local executorName, executorVersion, executorDisplay = GetExecutorInfo()
-
-    SigmaLibrary.Executor = {
+    return {
         Name = executorName,
         Version = executorVersion,
         DisplayName = executorDisplay
     }
+end
 
-    local message =
-        "Loaded Successfully    :   Executor: "
-        .. executorDisplay
+local function PrintLoadedSuccessfully()
+    local executorInfo = GetExecutorInfo()
 
-    local printedInColor = false
+    SigmaLibrary.Executor = executorInfo
 
-    if typeof(rconsoleprint) == "function" then
-        printedInColor = pcall(function()
-            rconsoleprint("@@GREEN@@")
-            rconsoleprint(message .. "\n")
-            rconsoleprint("@@WHITE@@")
-        end)
-    elseif typeof(consoleprint) == "function" then
-        printedInColor = pcall(function()
-            consoleprint("@@GREEN@@")
-            consoleprint(message .. "\n")
-            consoleprint("@@WHITE@@")
-        end)
-    end
-
-    if not printedInColor then
-        print(message)
-    end
+    print(
+        "🟢 Loaded Successfully      : Executor: "
+        .. tostring(executorInfo.DisplayName)
+    )
 end
 
 local function MakeDraggable(object, handle)
@@ -844,18 +821,6 @@ function SigmaLibrary:CreateWindow(configuration)
                 })
             end)
 
-            Button.MouseButton1Down:Connect(function()
-                Tween(Button, {
-                    BackgroundColor3 = Color3.fromRGB(42, 42, 52)
-                }, 0.08)
-            end)
-
-            Button.MouseButton1Up:Connect(function()
-                Tween(Button, {
-                    BackgroundColor3 = Color3.fromRGB(35, 35, 44)
-                }, 0.08)
-            end)
-
             Button.MouseButton1Click:Connect(function()
                 RunCallback(callback)
             end)
@@ -982,18 +947,6 @@ function SigmaLibrary:CreateWindow(configuration)
                 Parent = Knob,
                 CornerRadius = UDim.new(1, 0)
             })
-
-            ToggleButton.MouseEnter:Connect(function()
-                Tween(ToggleButton, {
-                    BackgroundColor3 = Color3.fromRGB(34, 34, 42)
-                })
-            end)
-
-            ToggleButton.MouseLeave:Connect(function()
-                Tween(ToggleButton, {
-                    BackgroundColor3 = Color3.fromRGB(27, 27, 34)
-                })
-            end)
 
             local Object = {}
 
@@ -1258,10 +1211,8 @@ function SigmaLibrary:CreateWindow(configuration)
                     return
                 end
 
-                if input.UserInputType
-                        == Enum.UserInputType.MouseMovement
-                    or input.UserInputType
-                        == Enum.UserInputType.Touch then
+                if input.UserInputType == Enum.UserInputType.MouseMovement
+                    or input.UserInputType == Enum.UserInputType.Touch then
                     Update(input.Position)
                 end
             end)
