@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 local SigmaLibrary = {
     Name = "SigmaLibrary",
-    Version = "1.0.0"
+    Version = "1.1.0"
 }
 
 local function Create(className, properties)
@@ -64,10 +64,10 @@ local function GetUIParent()
     end
 
     local success = pcall(function()
-        local folder = Instance.new("Folder")
-        folder.Name = "SigmaLibraryTest"
-        folder.Parent = CoreGui
-        folder:Destroy()
+        local testFolder = Instance.new("Folder")
+        testFolder.Name = "SigmaLibraryTest"
+        testFolder.Parent = CoreGui
+        testFolder:Destroy()
     end)
 
     if success then
@@ -94,6 +94,102 @@ local function FormatNumber(value, increment)
     text = text:gsub("%.$", "")
 
     return text
+end
+
+local function GetExecutorInfo()
+    local executorName = "Unknown Executor"
+    local executorVersion
+
+    if typeof(identifyexecutor) == "function" then
+        local success, name, version = pcall(identifyexecutor)
+
+        if success then
+            if typeof(name) == "string" and name ~= "" then
+                executorName = name
+            end
+
+            if typeof(version) == "string" and version ~= "" then
+                executorVersion = version
+            elseif typeof(version) == "number" then
+                executorVersion = tostring(version)
+            end
+        end
+    elseif typeof(getexecutorname) == "function" then
+        local success, name, version = pcall(getexecutorname)
+
+        if success then
+            if typeof(name) == "string" and name ~= "" then
+                executorName = name
+            end
+
+            if typeof(version) == "string" and version ~= "" then
+                executorVersion = version
+            elseif typeof(version) == "number" then
+                executorVersion = tostring(version)
+            end
+        end
+    elseif typeof(getexecutor) == "function" then
+        local success, name, version = pcall(getexecutor)
+
+        if success then
+            if typeof(name) == "string" and name ~= "" then
+                executorName = name
+            end
+
+            if typeof(version) == "string" and version ~= "" then
+                executorVersion = version
+            elseif typeof(version) == "number" then
+                executorVersion = tostring(version)
+            end
+        end
+    end
+
+    local executorDisplay = executorName
+
+    if executorVersion then
+        local loweredName = string.lower(executorName)
+        local loweredVersion = string.lower(executorVersion)
+
+        if not string.find(loweredName, loweredVersion, 1, true) then
+            executorDisplay = executorName .. " " .. executorVersion
+        end
+    end
+
+    return executorName, executorVersion, executorDisplay
+end
+
+local function PrintLoadedSuccessfully()
+    local executorName, executorVersion, executorDisplay = GetExecutorInfo()
+
+    SigmaLibrary.Executor = {
+        Name = executorName,
+        Version = executorVersion,
+        DisplayName = executorDisplay
+    }
+
+    local message =
+        "Loaded Successfully    :   Executor: "
+        .. executorDisplay
+
+    local printedInColor = false
+
+    if typeof(rconsoleprint) == "function" then
+        printedInColor = pcall(function()
+            rconsoleprint("@@GREEN@@")
+            rconsoleprint(message .. "\n")
+            rconsoleprint("@@WHITE@@")
+        end)
+    elseif typeof(consoleprint) == "function" then
+        printedInColor = pcall(function()
+            consoleprint("@@GREEN@@")
+            consoleprint(message .. "\n")
+            consoleprint("@@WHITE@@")
+        end)
+    end
+
+    if not printedInColor then
+        print(message)
+    end
 end
 
 local function MakeDraggable(object, handle)
@@ -140,6 +236,10 @@ local function MakeDraggable(object, handle)
             startPosition.Y.Offset + delta.Y
         )
     end)
+end
+
+function SigmaLibrary:GetExecutor()
+    return self.Executor
 end
 
 function SigmaLibrary:CreateWindow(configuration)
@@ -1036,8 +1136,8 @@ function SigmaLibrary:CreateWindow(configuration)
                 CornerRadius = UDim.new(1, 0)
             })
 
-            local startingPercentage = (value - minimum)
-                / (maximum - minimum)
+            local startingPercentage =
+                (value - minimum) / (maximum - minimum)
 
             local Fill = Create("Frame", {
                 Parent = Bar,
@@ -1081,12 +1181,13 @@ function SigmaLibrary:CreateWindow(configuration)
             function Object:Set(newValue, silent)
                 newValue = tonumber(newValue) or minimum
                 newValue = math.clamp(newValue, minimum, maximum)
-                newValue = Round(newValue - minimum, increment) + minimum
+                newValue =
+                    Round(newValue - minimum, increment) + minimum
 
                 value = math.clamp(newValue, minimum, maximum)
 
-                local percentage = (value - minimum)
-                    / (maximum - minimum)
+                local percentage =
+                    (value - minimum) / (maximum - minimum)
 
                 Tween(Fill, {
                     Size = UDim2.fromScale(percentage, 1)
@@ -1132,7 +1233,8 @@ function SigmaLibrary:CreateWindow(configuration)
                 )
 
                 Object:Set(
-                    minimum + ((maximum - minimum) * percentage)
+                    minimum
+                        + ((maximum - minimum) * percentage)
                 )
             end
 
@@ -1156,8 +1258,10 @@ function SigmaLibrary:CreateWindow(configuration)
                     return
                 end
 
-                if input.UserInputType == Enum.UserInputType.MouseMovement
-                    or input.UserInputType == Enum.UserInputType.Touch then
+                if input.UserInputType
+                        == Enum.UserInputType.MouseMovement
+                    or input.UserInputType
+                        == Enum.UserInputType.Touch then
                     Update(input.Position)
                 end
             end)
@@ -1363,5 +1467,7 @@ function SigmaLibrary:CreateWindow(configuration)
 
     return Window
 end
+
+PrintLoadedSuccessfully()
 
 return SigmaLibrary
